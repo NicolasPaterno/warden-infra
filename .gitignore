@@ -1,0 +1,11 @@
+# Local environment files — contain credentials, never commit
+local/.env
+
+# Kubernetes secrets — contain real credentials, never commit
+# Commit only the *.env.example counterpart
+k8s/**/secret.env
+
+# Editor artifacts
+.idea/
+.vscode/
+*.iml
