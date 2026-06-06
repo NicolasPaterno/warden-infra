@@ -1,5 +1,22 @@
 COMPOSE_FILE=local/docker-compose.yml
 K8S_NS=warden
+GATEWAY_IMAGE=warden-gateway:local
+GATEWAY_DIR=../warden-gateway
+
+# ── Minikube ─────────────────────────────────────────────────────────────────
+minikube-start:
+	minikube start --driver=docker --cpus=2 --memory=4096
+
+minikube-stop:
+	minikube stop
+
+# Build the gateway image locally and load it into minikube
+minikube-load:
+	docker build -t $(GATEWAY_IMAGE) $(GATEWAY_DIR)
+	minikube image load $(GATEWAY_IMAGE)
+
+# Full K8s dev setup from scratch: start cluster + load image + apply all manifests
+dev-k8s: minikube-start minikube-load k8s-apply
 
 # ── Docker (local stack) ──────────────────────────────────────────────────────
 up:
@@ -38,8 +55,15 @@ k8s-secrets: k8s-namespace
 		--namespace=$(K8S_NS) \
 		--dry-run=client -o yaml | kubectl apply -f -
 
-# ── Kubernetes — gateway ──────────────────────────────────────────────────────
-k8s-gateway: k8s-namespace
+# ── Kubernetes — migrations (runs once before deploy, waits for completion) ───
+k8s-migrate: k8s-namespace
+	kubectl apply -f k8s/gateway/migrations-configmap.yml
+	kubectl delete job gateway-migrate -n $(K8S_NS) --ignore-not-found
+	kubectl apply -f k8s/gateway/migrations-job.yml
+	kubectl wait --for=condition=complete job/gateway-migrate -n $(K8S_NS) --timeout=120s
+
+# ── Kubernetes — gateway (always runs after migrations) ───────────────────────
+k8s-gateway: k8s-namespace k8s-migrate
 	kubectl apply -f k8s/gateway/configmap.yml
 	kubectl apply -f k8s/gateway/deployment.yml
 	kubectl apply -f k8s/gateway/service.yml
@@ -65,7 +89,8 @@ k8s-delete-gateway:
 k8s-delete-all:
 	kubectl delete namespace $(K8S_NS) --ignore-not-found
 
-.PHONY: up down down-v logs ps \
-        k8s-namespace k8s-base k8s-secrets k8s-gateway k8s-apply \
+.PHONY: minikube-start minikube-stop minikube-load dev-k8s \
+        up down down-v logs ps \
+        k8s-namespace k8s-base k8s-secrets k8s-migrate k8s-gateway k8s-apply \
         k8s-status k8s-pods k8s-logs \
         k8s-delete-gateway k8s-delete-all
