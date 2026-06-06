@@ -15,8 +15,12 @@ minikube-load:
 	docker build -t $(GATEWAY_IMAGE) $(GATEWAY_DIR)
 	minikube image load $(GATEWAY_IMAGE)
 
+# Override running deployment to use local image (minikube only)
+minikube-set-image:
+	kubectl set image deployment/warden-gateway gateway=$(GATEWAY_IMAGE) -n $(K8S_NS)
+
 # Full K8s dev setup from scratch: start cluster + load image + apply all manifests
-dev-k8s: minikube-start minikube-load k8s-apply
+dev-k8s: minikube-start minikube-load k8s-apply minikube-set-image
 
 # ── Docker (local stack) ──────────────────────────────────────────────────────
 up:
@@ -89,7 +93,7 @@ k8s-delete-gateway:
 k8s-delete-all:
 	kubectl delete namespace $(K8S_NS) --ignore-not-found
 
-.PHONY: minikube-start minikube-stop minikube-load dev-k8s \
+.PHONY: minikube-start minikube-stop minikube-load minikube-set-image dev-k8s \
         up down down-v logs ps \
         k8s-namespace k8s-base k8s-secrets k8s-migrate k8s-gateway k8s-apply \
         k8s-status k8s-pods k8s-logs \

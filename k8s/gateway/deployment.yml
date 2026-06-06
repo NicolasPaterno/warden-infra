@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: gateway
-          image: warden-gateway:local
-          imagePullPolicy: Never
+          image: ghcr.io/nicaozx/warden-gateway:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
