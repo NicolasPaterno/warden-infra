@@ -1,0 +1,108 @@
+# Single PostgreSQL instance with TimescaleDB for local K8s (minikube/kind).
+# In production, each service would have its own separate PostgreSQL instance.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: warden
+  labels:
+    app: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: timescale/timescaledb:latest-pg16
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: POSTGRES_DB
+              value: warden
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: warden
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None  # headless service for StatefulSet
+---
+# Run once after first deploy to create databases and extensions.
+# kubectl apply -f postgres-init-job.yml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-init
+  namespace: warden
+spec:
+  ttlSecondsAfterFinished: 120
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: timescale/timescaledb:latest-pg16
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+          command:
+            - sh
+            - -c
+            - |
+              psql -h postgres -U postgres -c "CREATE DATABASE warden_gateway_db;" || true
+              psql -h postgres -U postgres -c "CREATE DATABASE warden_engine_db;"  || true
+              psql -h postgres -U postgres -c "CREATE DATABASE warden_brain_db;"   || true
+              psql -h postgres -U postgres -d warden_gateway_db -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
