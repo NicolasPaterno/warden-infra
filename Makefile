@@ -38,6 +38,15 @@ logs:
 ps:
 	docker compose -f $(COMPOSE_FILE) ps
 
+monitoring-up:
+	docker compose -f $(COMPOSE_FILE) up -d prometheus grafana jaeger
+
+monitoring-down:
+	docker compose -f $(COMPOSE_FILE) stop prometheus grafana jaeger
+
+monitoring-logs:
+	docker compose -f $(COMPOSE_FILE) logs -f prometheus grafana jaeger
+
 # ── Kubernetes — namespace ────────────────────────────────────────────────────
 k8s-namespace:
 	kubectl apply -f k8s/base/namespace.yml
@@ -95,6 +104,7 @@ k8s-delete-all:
 
 .PHONY: minikube-start minikube-stop minikube-load minikube-set-image dev-k8s \
         up down down-v logs ps \
+        monitoring-up monitoring-down monitoring-logs \
         k8s-namespace k8s-base k8s-secrets k8s-migrate k8s-gateway k8s-apply \
         k8s-status k8s-pods k8s-logs \
         k8s-delete-gateway k8s-delete-all
