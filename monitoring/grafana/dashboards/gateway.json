@@ -1,0 +1,78 @@
+{
+  "title": "Warden Gateway",
+  "uid": "warden-gateway",
+  "version": 1,
+  "schemaVersion": 39,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Readings per second (by room)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (room) (rate(warden_gateway_readings_total[1m]))",
+          "legendFormat": "{{room}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Readings per second (by sensor type)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (sensor_type) (rate(warden_gateway_readings_total[1m]))",
+          "legendFormat": "{{sensor_type}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "WebSocket clients connected",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "warden_gateway_ws_clients_connected",
+          "legendFormat": "clients"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "NATS publish errors (total)",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "warden_gateway_nats_publish_errors_total",
+          "legendFormat": "errors"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Reading pipeline latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(warden_gateway_readings_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(warden_gateway_readings_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(warden_gateway_readings_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ]
+    }
+  ]
+}
