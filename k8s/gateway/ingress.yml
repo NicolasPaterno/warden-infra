@@ -4,6 +4,7 @@ metadata:
   name: warden-gateway
   namespace: warden
   annotations:
+    nginx.ingress.kubernetes.io/load-balance: "least_conn"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 spec:
