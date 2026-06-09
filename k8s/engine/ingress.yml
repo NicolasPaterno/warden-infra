@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: warden-engine
   namespace: warden
+  annotations:
+    nginx.ingress.kubernetes.io/load-balance: "least_conn"
 spec:
   ingressClassName: nginx
   rules:
