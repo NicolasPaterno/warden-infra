@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: engine-migrations
+  namespace: warden
+data:
+  001_create_rules.up.sql: |
+    CREATE TYPE sensor_type AS ENUM ('temperature', 'humidity', 'motion', 'co2');
+    CREATE TYPE operator AS ENUM ('gt', 'lt', 'gte', 'lte', 'eq');
+    CREATE TYPE action_type AS ENUM ('alert');
+
+    CREATE TABLE rules (
+        id          TEXT        PRIMARY KEY,
+        name        TEXT        NOT NULL,
+        room        TEXT        NOT NULL,
+        sensor_type sensor_type NOT NULL,
+        operator    operator    NOT NULL,
+        threshold   FLOAT8      NOT NULL,
+        action_type action_type NOT NULL,
+        payload     TEXT        NOT NULL DEFAULT '',
+        enabled     BOOLEAN     NOT NULL DEFAULT true,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+  001_create_rules.down.sql: |
+    DROP TABLE IF EXISTS rules;
+    DROP TYPE IF EXISTS action_type;
+    DROP TYPE IF EXISTS operator;
+    DROP TYPE IF EXISTS sensor_type;
+
+  002_create_alerts.up.sql: |
+    CREATE TYPE alert_severity AS ENUM ('info', 'warning', 'critical');
+
+    CREATE TABLE alerts (
+        id          TEXT            PRIMARY KEY,
+        rule_id     TEXT            NOT NULL REFERENCES rules(id),
+        room        TEXT            NOT NULL,
+        message     TEXT            NOT NULL,
+        severity    alert_severity  NOT NULL,
+        value       FLOAT8          NOT NULL,
+        created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+    );
+
+  002_create_alerts.down.sql: |
+    DROP TABLE IF EXISTS alerts;
+    DROP TYPE IF EXISTS alert_severity;
