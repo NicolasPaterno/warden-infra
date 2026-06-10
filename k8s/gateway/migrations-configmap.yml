@@ -18,3 +18,14 @@ data:
 
   000001_create_readings.down.sql: |
     DROP TABLE IF EXISTS readings;
+
+  000002_add_tenant.up.sql: |
+    ALTER TABLE readings ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT '';
+
+    CREATE INDEX IF NOT EXISTS idx_readings_tenant
+        ON readings (tenant_id, room, type, time DESC);
+
+  000002_add_tenant.down.sql: |
+    DROP INDEX IF EXISTS idx_readings_tenant;
+
+    ALTER TABLE readings DROP COLUMN IF EXISTS tenant_id;
