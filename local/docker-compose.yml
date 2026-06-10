@@ -62,11 +62,14 @@ services:
     build: ../../warden-auth
     container_name: warden-auth
     depends_on:
+      redis:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       auth-migrate:
         condition: service_completed_successfully
     environment:
+      REDIS_URL: redis://localhost:6379
       DATABASE_URL: postgres://postgres:warden@postgres:5432/warden_auth_db?sslmode=disable
       HTTP_PORT: ":8082"
       PRIVATE_KEY_PATH: /etc/auth/keys/private.pem

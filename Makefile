@@ -4,6 +4,11 @@ GATEWAY_IMAGE=warden-gateway:local
 GATEWAY_DIR=../warden-gateway
 ENGINE_IMAGE=warden-engine:local
 ENGINE_DIR=../warden-engine
+AUTH_IMAGE=warden-auth:local
+AUTH_DIR=../warden-auth
+# RSA signing key loaded into the auth-keys Secret. Dev default; use a real
+# secret manager in production.
+AUTH_KEY_FILE=../warden-auth/dev-private.pem
 
 # ── Minikube ─────────────────────────────────────────────────────────────────
 minikube-start:
@@ -23,11 +28,14 @@ minikube-load:
 	minikube image load $(GATEWAY_IMAGE)
 	docker build -t $(ENGINE_IMAGE) $(ENGINE_DIR)
 	minikube image load $(ENGINE_IMAGE)
+	docker build -t $(AUTH_IMAGE) $(AUTH_DIR)
+	minikube image load $(AUTH_IMAGE)
 
 # Override running deployments to use local images (minikube only)
 minikube-set-image:
 	kubectl set image deployment/warden-gateway gateway=$(GATEWAY_IMAGE) -n $(K8S_NS)
 	kubectl set image deployment/warden-engine engine=$(ENGINE_IMAGE) -n $(K8S_NS)
+	kubectl set image deployment/warden-auth auth=$(AUTH_IMAGE) -n $(K8S_NS)
 
 # Full K8s dev setup from scratch: start cluster + addons + load images + apply all
 dev-k8s: minikube-start minikube-addons minikube-load k8s-apply minikube-set-image
@@ -81,6 +89,14 @@ k8s-secrets: k8s-namespace
 		--from-env-file=k8s/engine/secret.env \
 		--namespace=$(K8S_NS) \
 		--dry-run=client -o yaml | kubectl apply -f -
+	kubectl create secret generic auth-secret \
+		--from-env-file=k8s/auth/secret.env \
+		--namespace=$(K8S_NS) \
+		--dry-run=client -o yaml | kubectl apply -f -
+	kubectl create secret generic auth-keys \
+		--from-file=private.pem=$(AUTH_KEY_FILE) \
+		--namespace=$(K8S_NS) \
+		--dry-run=client -o yaml | kubectl apply -f -
 
 # ── Kubernetes — migrations (runs once before deploy, waits for completion) ───
 k8s-migrate: k8s-namespace
@@ -111,8 +127,23 @@ k8s-engine: k8s-namespace k8s-migrate-engine
 	kubectl apply -f k8s/engine/hpa.yml
 	kubectl apply -f k8s/engine/ingress.yml
 
+# ── Kubernetes — auth migrations (runs once before deploy) ────────────────────
+k8s-migrate-auth: k8s-namespace
+	kubectl apply -f k8s/auth/migrations-configmap.yml
+	kubectl delete job auth-migrate -n $(K8S_NS) --ignore-not-found
+	kubectl apply -f k8s/auth/migrations-job.yml
+	kubectl wait --for=condition=complete job/auth-migrate -n $(K8S_NS) --timeout=120s
+
+# ── Kubernetes — auth (always runs after migrations) ──────────────────────────
+k8s-auth: k8s-namespace k8s-migrate-auth
+	kubectl apply -f k8s/auth/configmap.yml
+	kubectl apply -f k8s/auth/deployment.yml
+	kubectl apply -f k8s/auth/service.yml
+	kubectl apply -f k8s/auth/hpa.yml
+	kubectl apply -f k8s/auth/ingress.yml
+
 # ── Kubernetes — apply everything ────────────────────────────────────────────
-k8s-apply: k8s-base k8s-secrets k8s-gateway k8s-engine
+k8s-apply: k8s-base k8s-secrets k8s-gateway k8s-engine k8s-auth
 
 # ── Kubernetes — status ───────────────────────────────────────────────────────
 k8s-status:
@@ -127,12 +158,18 @@ k8s-logs:
 k8s-engine-logs:
 	kubectl logs -n $(K8S_NS) -l app=warden-engine --tail=50 -f
 
+k8s-auth-logs:
+	kubectl logs -n $(K8S_NS) -l app=warden-auth --tail=50 -f
+
 # ── Kubernetes — teardown ─────────────────────────────────────────────────────
 k8s-delete-gateway:
 	kubectl delete -f k8s/gateway/ --ignore-not-found
 
 k8s-delete-engine:
 	kubectl delete -f k8s/engine/ --ignore-not-found
+
+k8s-delete-auth:
+	kubectl delete -f k8s/auth/ --ignore-not-found
 
 k8s-delete-all:
 	kubectl delete namespace $(K8S_NS) --ignore-not-found
@@ -141,6 +178,6 @@ k8s-delete-all:
         up down down-v logs ps \
         monitoring-up monitoring-down monitoring-logs \
         k8s-namespace k8s-base k8s-secrets k8s-migrate k8s-gateway \
-        k8s-migrate-engine k8s-engine k8s-apply \
-        k8s-status k8s-pods k8s-logs k8s-engine-logs \
-        k8s-delete-gateway k8s-delete-engine k8s-delete-all
+        k8s-migrate-engine k8s-engine k8s-migrate-auth k8s-auth k8s-apply \
+        k8s-status k8s-pods k8s-logs k8s-engine-logs k8s-auth-logs \
+        k8s-delete-gateway k8s-delete-engine k8s-delete-auth k8s-delete-all
