@@ -1,10 +1,11 @@
 -- Runs once on first container start (docker-entrypoint-initdb.d)
--- Creates three isolated databases — one per service.
+-- Creates one isolated database per service.
 -- Each service only has credentials to its own database.
 
 CREATE DATABASE warden_gateway_db;
 CREATE DATABASE warden_engine_db;
 CREATE DATABASE warden_brain_db;
+CREATE DATABASE warden_auth_db;
 
 -- TimescaleDB is pre-installed in the image; enable it per database.
 -- The gateway uses hypertables for time-series sensor readings.

@@ -105,4 +105,5 @@ spec:
               psql -h postgres -U postgres -c "CREATE DATABASE warden_gateway_db;" || true
               psql -h postgres -U postgres -c "CREATE DATABASE warden_engine_db;"  || true
               psql -h postgres -U postgres -c "CREATE DATABASE warden_brain_db;"   || true
+              psql -h postgres -U postgres -c "CREATE DATABASE warden_auth_db;"    || true
               psql -h postgres -U postgres -d warden_gateway_db -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
