@@ -6,9 +6,32 @@ metadata:
 spec:
   ttlSecondsAfterFinished: 120
   backoffLimit: 3
+  # Hard ceiling for the whole job (initContainer wait included). If the DB
+  # never comes up, the job fails with DeadlineExceeded instead of hanging.
+  activeDeadlineSeconds: 180
   template:
     spec:
       restartPolicy: OnFailure
+      initContainers:
+        # Hold the migration until Postgres accepts connections AND the target
+        # database exists (created by the postgres-init job). Avoids racing the
+        # DB startup on a cold cluster, where backoffLimit alone would exhaust.
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until psql "$DATABASE_URL" -c 'SELECT 1' >/dev/null 2>&1; do
+                echo "waiting for database..."
+                sleep 2
+              done
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: engine-secret
+                  key: database-url
       containers:
         - name: migrate
           image: migrate/migrate:v4.18.1
