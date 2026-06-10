@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: warden-auth
+  namespace: warden
+  annotations:
+    nginx.ingress.kubernetes.io/load-balance: "ewma"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: auth.warden.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: warden-auth
+                port:
+                  number: 8082
