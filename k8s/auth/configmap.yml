@@ -9,3 +9,4 @@ data:
   AUDIENCE: "warden-engine,warden-gateway"
   SERVICE_AUDIENCES: "warden-engine,warden-gateway"
   PRIVATE_KEY_PATH: "/etc/auth/keys/private.pem"
+  REDIS_URL: "redis://redis.warden.svc.cluster.local:6379"
