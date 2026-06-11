@@ -34,6 +34,11 @@ spec:
                 secretKeyRef:
                   name: auth-secret
                   key: database-url
+            - name: SERVICE_CLIENTS
+              valueFrom:
+                secretKeyRef:
+                  name: auth-secret
+                  key: service-clients
           volumeMounts:
             - name: signing-key
               mountPath: /etc/auth/keys

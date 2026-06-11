@@ -6,4 +6,7 @@ metadata:
 data:
   HTTP_PORT: ":8080"
   NATS_URL: "nats://nats.warden.svc.cluster.local:4222"
+  JWKS_URL: "http://warden-auth.warden.svc.cluster.local:8082/.well-known/jwks.json"
+  ISSUER: "warden-auth"
+  AUDIENCE: "warden-gateway"
   # DATABASE_URL is injected via Secret, not ConfigMap — it contains credentials.

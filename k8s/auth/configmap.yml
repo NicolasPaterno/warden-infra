@@ -6,5 +6,6 @@ metadata:
 data:
   HTTP_PORT: ":8082"
   ISSUER: "warden-auth"
-  AUDIENCE: "warden-engine"
+  AUDIENCE: "warden-engine,warden-gateway"
+  SERVICE_AUDIENCES: "warden-engine,warden-gateway"
   PRIVATE_KEY_PATH: "/etc/auth/keys/private.pem"
