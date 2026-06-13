@@ -6,7 +6,7 @@ metadata:
 data:
   HTTP_PORT: ":8082"
   ISSUER: "warden-auth"
-  AUDIENCE: "warden-engine,warden-gateway"
+  AUDIENCE: "warden-engine,warden-gateway,warden-brain"
   SERVICE_AUDIENCES: "warden-engine,warden-gateway"
   PRIVATE_KEY_PATH: "/etc/auth/keys/private.pem"
   REDIS_URL: "redis://redis.warden.svc.cluster.local:6379"
