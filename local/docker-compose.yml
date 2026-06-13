@@ -74,7 +74,7 @@ services:
       HTTP_PORT: ":8082"
       PRIVATE_KEY_PATH: /etc/auth/keys/private.pem
       ISSUER: warden-auth
-      AUDIENCE: warden-engine,warden-gateway
+      AUDIENCE: warden-engine,warden-gateway,warden-brain
       SERVICE_CLIENTS: brain:dev-brain-secret
       SERVICE_AUDIENCES: warden-engine,warden-gateway
     ports:
