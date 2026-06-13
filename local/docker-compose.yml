@@ -149,11 +149,10 @@ services:
     restart: "no"
 
   engine:
-    # Multi-repo build: context is the parent dir (holds warden-engine AND
-    # warden-auth) because go.mod uses `replace ... => ../warden-auth`.
+    # Single-repo build: warden-auth is consumed as a versioned public module,
+    # so the context is just this service's repo (matches its Dockerfile).
     build:
-      context: ../..
-      dockerfile: warden-engine/Dockerfile
+      context: ../../warden-engine
     container_name: warden-engine
     depends_on:
       postgres:
